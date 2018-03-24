@@ -1,8 +1,13 @@
 
         package gui;
 
+        import org.junit.Before;
         import org.junit.Ignore;
+        import org.junit.Rule;
         import org.junit.Test;
+        import org.mockito.Mock;
+        import org.mockito.junit.MockitoJUnit;
+        import org.mockito.junit.MockitoRule;
 
         import javax.swing.*;
         import java.awt.*;
@@ -17,21 +22,50 @@
  * Created by Krzysztof Podlaski on 17.03.2018.
  */
 public class LoginFormTest {
+    LoginForm loginForm;
+    private Application parent;
 
-    @Ignore //Do poprawy
+    @Mock
+    private JButton loginStartButton;
+    @Mock
+    private JPasswordField passwordField;
+    @Mock
+    public  JTextField userNameTextField;
+
+    @Rule
+    public MockitoRule mockitoRule = MockitoJUnit.rule();
+
+    @Before
+    public void setUp() throws NoSuchFieldException, IllegalAccessException {
+        parent = mock(Application.class); //To samo co @Mock
+        loginForm = new LoginForm(parent);
+        Field field =
+                loginForm.getClass()
+                .getDeclaredField("loginStartButton");
+        field.setAccessible(true);
+        field.set(loginForm,loginStartButton);
+        field =
+                loginForm.getClass()
+                        .getDeclaredField("passwordField");
+        field.setAccessible(true);
+        field.set(loginForm,passwordField);
+        field =
+                loginForm.getClass()
+                        .getDeclaredField("userNameTextField");
+        field.setAccessible(true);
+        field.set(loginForm,userNameTextField);
+    }
+
+    @Ignore
     @Test
     public void logInTest() throws NoSuchFieldException, IllegalAccessException {
-        Application app = mock(Application.class);
-        LoginForm form = new LoginForm(app);
-        Field fbutton = form.getClass().getDeclaredField("loginStartButton");
-        fbutton.setAccessible(true);
-        JButton button = (JButton) fbutton.get(form);
+
 
         ActionEvent ae =
-                new ActionEvent(button,ActionEvent.ACTION_PERFORMED,"click" );
-        button.dispatchEvent(ae);
+                new ActionEvent(loginStartButton,ActionEvent.ACTION_PERFORMED,"click" );
+        loginStartButton.dispatchEvent(ae);
         Toolkit.getDefaultToolkit().getSystemEventQueue().postEvent(ae);
         //Test czy wywołano operację logInOperation() na mockupie
-        verify(app).logInOperation();
+        verify(parent).logInOperation();
     }
 }

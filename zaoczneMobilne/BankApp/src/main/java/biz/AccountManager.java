@@ -26,8 +26,11 @@ public class AccountManager {
     public boolean paymentIn(User user, double ammount, String description, int accountId) throws SQLException {
         Account account = dao.findAccountById(accountId);
         Operation operation = new PaymentIn(user, ammount,description, account);
-        boolean success = account.income(ammount);
-        success = dao.updateAccountState(account);
+        boolean success = false;
+        if (account != null) {
+            success = account.income(ammount);
+            success = dao.updateAccountState(account);
+        }
         history.logOperation(operation, success);
         return success;
     }
