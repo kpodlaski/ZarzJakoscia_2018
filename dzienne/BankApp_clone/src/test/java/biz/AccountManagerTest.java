@@ -2,12 +2,16 @@ package biz;
 
 import db.dao.DAO;
 import model.Account;
+import model.Operation;
 import model.User;
+import model.exceptions.OperationIsNotAllowedException;
 import model.exceptions.UserUnnkownOrBadPasswordException;
 import model.operations.PaymentIn;
+import model.operations.Withdraw;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -40,6 +44,7 @@ public class AccountManagerTest {
     //Niezbędne do storzenia powyższych mocków
     @Rule
     public MockitoRule mockitoRule = MockitoJUnit.rule();
+
 
     @Before
     public void setUp() throws Exception {
@@ -120,4 +125,87 @@ public class AccountManagerTest {
         verify(history,atLeastOnce())
                 .logOperation(any(PaymentIn.class),eq(false));
     }
+
+    @Test
+    public void paymentOutSuccess() throws SQLException, OperationIsNotAllowedException {
+        Account account = mock(Account.class);
+        User user = mock(User.class);
+        when(dao.findAccountById(anyInt()))
+                .thenReturn(account);
+        when(auth.canInvokeOperation(
+                any(Withdraw.class),
+                any(User.class)))
+                .thenReturn(true);
+        when(account.outcome(anyDouble()))
+                .thenReturn(true);
+        when(dao.updateAccountState(any(Account.class)))
+                .thenReturn(true);
+        double ammount=1234.65;
+        String desc= "desc";
+        int accountId=133;
+        boolean result = am.paymentOut(
+                user,
+                ammount,
+                desc,
+                accountId);
+        assertTrue(result);
+        verify(auth,atLeastOnce())
+           .canInvokeOperation(
+                   any(Withdraw.class),eq(user));
+        verify(dao,atLeastOnce())
+           .findAccountById(accountId);
+        verify(history,times(1))
+           .logOperation(
+                   any(Withdraw.class),eq(true));
+        verify(account, times(1))
+           .outcome(ammount);
+        verify(dao,times(1))
+           .updateAccountState(account);
+        verify(history,never())
+            .logOperation(
+                    any(Withdraw.class),eq(false));
+    }
+
+    @Test(expected=OperationIsNotAllowedException.class)
+    public void paymentOutUnauthorized() throws Exception {
+        Account account = mock(Account.class);
+        User user = mock(User.class);
+        when(dao.findAccountById(anyInt()))
+                .thenReturn(account);
+        when(auth.canInvokeOperation(
+                any(Withdraw.class),
+                any(User.class)))
+                .thenReturn(false);
+        double ammount=1234.65;
+        String desc= "desc";
+        int accountId=133;
+        try {
+            boolean result = am.paymentOut(
+                user,
+                ammount,
+                desc,
+                accountId);
+            assertFalse(result);
+        }
+        catch(Exception e) {
+            verify(auth, atLeastOnce())
+                    .canInvokeOperation(
+                            any(Withdraw.class), eq(user));
+            verify(dao, atLeastOnce())
+                    .findAccountById(accountId);
+            verify(history, never())
+                    .logOperation(
+                            any(Withdraw.class), eq(true));
+            verify(account, never())
+                    .outcome(ammount);
+            verify(dao, never())
+                    .updateAccountState(account);
+            verify(history, times(1))
+                    .logUnauthorizedOperation(
+                            any(Withdraw.class), eq(false));
+            throw e;
+        }
+    }
+
+
 }
