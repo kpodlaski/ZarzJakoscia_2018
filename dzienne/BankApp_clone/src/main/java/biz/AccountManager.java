@@ -46,7 +46,9 @@ public class AccountManager {
         return success;
     }
 
-    public boolean internalPayment(User user, double ammount, String description, int sourceAccountId, int destAccountId) throws OperationIsNotAllowedException, SQLException {
+    public boolean internalPayment(User user, double ammount, String description,
+
+                                   int sourceAccountId, int destAccountId) throws OperationIsNotAllowedException, SQLException {
         Account sourceAccount = dao.findAccountById(sourceAccountId);
         Account destAccount = dao.findAccountById(destAccountId);
         Operation withdraw = new Withdraw(user, ammount,description, sourceAccount);

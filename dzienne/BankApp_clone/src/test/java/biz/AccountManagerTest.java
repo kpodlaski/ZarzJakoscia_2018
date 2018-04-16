@@ -6,6 +6,7 @@ import model.Operation;
 import model.User;
 import model.exceptions.OperationIsNotAllowedException;
 import model.exceptions.UserUnnkownOrBadPasswordException;
+import model.operations.Payment;
 import model.operations.PaymentIn;
 import model.operations.Withdraw;
 import org.junit.Before;
@@ -207,5 +208,38 @@ public class AccountManagerTest {
         }
     }
 
+    @Test
+    public void internalPayment() throws OperationIsNotAllowedException, SQLException {
+        User user = mock(User.class);
+        Account sourceAccount = mock(Account.class);
+        Account destAccount = mock(Account.class);
+        when(dao.findAccountById(12))
+                .thenReturn(sourceAccount);
+        when(dao.findAccountById(21))
+                .thenReturn(destAccount);
+        when(auth.canInvokeOperation(any(Operation.class),eq(user)))
+                .thenReturn(true);
+        when(sourceAccount.outcome(2400)).thenReturn(true);
+        when(destAccount.income(2400)).thenReturn(true);
+        when(dao.updateAccountState(sourceAccount)).thenReturn(true);
+        when(dao.updateAccountState(destAccount)).thenReturn(true);
+
+        boolean success = am.internalPayment(user,
+                2400,"desc",
+                12,21);
+        assertTrue(success);
+        verify(history,times(1))
+                .logOperation(any(Withdraw.class),eq(true));
+        verify(history,times(2))
+               .logOperation(any(Payment.class),eq(true));
+        verify(sourceAccount,times(1))
+                .outcome(2400);
+        verify(destAccount,times(1))
+                .income(2400);
+        verify(destAccount,never())
+                .outcome(anyDouble());
+        verify(sourceAccount,never())
+                .income(anyDouble());
+    }
 
 }
